@@ -1,0 +1,14 @@
+architecture:
+  type: TSViT
+  params:
+    num_classes: 2
+    image_size: 224 #1536
+    patch_size: 56 #512
+    dim: 128
+    depth: 8
+    heads: 8
+    mlp_dim: 512
+    dropout: 0.1
+    emb_dropout: 0.1
+    num_frames: 16
+

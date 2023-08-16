@@ -1,0 +1,5 @@
+git+https://github.com/ildoonet/pytorch-gradual-warmup-lr.git
+git+https://github.com/wbaek/theconf.git@v0.1.6
+einops
+tensorboardX
+torchsummary

@@ -1,0 +1,10 @@
+scheduler:
+  type: gradual_warmup
+  epoch: 100
+  chain_scheduler: 
+    type: CosineAnnealingLR
+    params:
+      T_max: 100
+  params:
+    multiplier: 1.
+    total_epoch: 25

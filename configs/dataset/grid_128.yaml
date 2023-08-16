@@ -1,0 +1,13 @@
+dataset:
+  train:
+    path: /home/cvip/jun/kidnap/dataset/fps2_128/train
+    batch_size: 32
+    shuffle: True
+    drop_last: True
+    preprocess:
+      - type: horizontal
+
+
+  test:
+    path : /home/cvip/jun/kidnap/dataset/fps2_128/test
+    batch_size: 32

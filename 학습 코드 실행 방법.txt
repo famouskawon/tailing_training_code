@@ -1,0 +1,30 @@
+컨테이너 위치 : 10번 서버 (cvip10@163.239.28.74) /ssd2/Jaewoo/docker_vol/jw_pytorch/tailing
+학습 데이터 위치 : /ssd2/Jaewoo/docker_vol/jw_pytorch/dataset
+
+
+1.학습 관련 configs 수정 시 configs 폴더 내 각각 yaml 파일 수정할 것
+ex)) dataset config에는 데이터 셋 경로 배치 사이즈 등 설정할 수 있음
+
+  - 사용중인 모델 파라메터는 configs/models/vivit_224~.yaml
+  - 학습 시 optimizer sgd 사용 중
+
+
+2. 학습 코드 : train.py, 그 외 코드는 trainer 폴더 내
+   학습 실행 파일 : train_224.sh 에 실행 가능하게 명령어 적혀있음
+   ex))
+   python -m torch.distributed.launch 
+	--nproc_per_node=2 --nnodes=1 
+	--master_addr=127.0.0.1 --master_port=9095
+	--node_rank 0 train.py
+	#configs 관련 
+	-c configs/dataset/rgb_224.yaml configs/loss/ce.yaml configs/model/ViViT_224-T.yaml 
+	configs/optimizer/sgd.yaml configs/scheduler/graual_warmup.yaml 
+	--save_dir "weights 저장 경로"
+
+3. 학습 데이터
+   224x224 사용 중, ViViT 패치 사이즈는 56으로
+
+4. 학습 데이터 생성 방법
+server 모듈 컨테이너에서 객체 검출 및 객체 추적 한 영상 프레임 생성
+10번 서버 도커 컨테이너 workspaceV5에서 생성 중.
+객체 검출 : yolov7, 객체 추적 : bytetrack 사용

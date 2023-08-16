@@ -1,0 +1,14 @@
+dataset:
+  train:
+    path: /workspace/dataset/server_data6_grid_fps5/train
+    batch_size: 8
+    shuffle: True
+    #drop_last: True
+    preprocess:
+      - type: horizontal
+
+
+  test:
+    path : /workspace/dataset/server_data6_grid_fps5/test
+    batch_size: 16
+    shuffle: False

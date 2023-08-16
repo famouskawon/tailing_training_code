@@ -1,0 +1,14 @@
+dataset:
+  train:
+    path: /workspace/raw_data/UBI_FIGHTS/UBI_FIGHTS/hockey_frame/train
+    batch_size: 16
+    shuffle: True
+    #drop_last: True
+    #preprocess:
+    #  - type: horizontal
+
+
+  test:
+    path : /workspace/raw_data/UBI_FIGHTS/UBI_FIGHTS/hockey_frame/test
+    batch_size: 16
+    shuffle: False

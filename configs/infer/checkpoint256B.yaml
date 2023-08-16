@@ -1,0 +1,2 @@
+inference:
+  checkpoint: /data/tailing/weights/train_not_init/224/B/TSViT_best_val.ckp

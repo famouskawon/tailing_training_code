@@ -1,0 +1,6 @@
+img_w: 1920
+img_h: 1080
+grid_size: 224
+raw_data: /data/dataset/project/od
+out_dir: /data/dataset/project/rgb_224
+blank: 4

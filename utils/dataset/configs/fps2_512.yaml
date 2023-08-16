@@ -1,0 +1,6 @@
+img_w: 1920
+img_h: 1080
+grid_size: 512
+raw_data: /data/dataset/project/od
+out_dir: /data/dataset/project/grid_512
+blank: 4

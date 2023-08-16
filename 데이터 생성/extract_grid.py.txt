@@ -1,0 +1,24 @@
+import os
+
+
+file_class = ["normal","tailing","normal","tailing"] 
+train_or_test = ['train','train',"test","test"] 
+
+
+for c , t in zip(file_class, train_or_test):
+    #데이터 셋 경로
+    p = f"/workspace/videos/train_for_project/{t}"
+    data_path = os.path.join(p, c)
+    for file in sorted(os.listdir(data_path)):
+
+        if c == "normal":
+            file_idx = file.split('.')[0][7:]
+            
+        elif c == "tailing":
+            file_idx = file.split('.')[0][8:]
+            
+
+
+        os.system(f'python3 extract_results.py --video_path {data_path}/{c}_{file_idx}.mp4 --fps 3 --event_model=tailing --result_dir ./result_project14/ --save_frame_result --vis_object')
+        os.system(f'python3 tracker_ex.py --raw_data /workspace/result_project14/  --file_idx={file_idx} --normal_or_tailing="{c}" --train_or_test="{t}" --output_grid_data="./server_data24_grid_fps3" --output_rgb_data="./server_data24_rgb_fps3"')
+       

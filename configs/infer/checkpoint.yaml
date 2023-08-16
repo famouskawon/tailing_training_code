@@ -1,0 +1,2 @@
+inference:
+  checkpoint: /home/gpuadmin/Jaewoo2/tailing/weights/train/20210928-083606/TSViT_best.ckp

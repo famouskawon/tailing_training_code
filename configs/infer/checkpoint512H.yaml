@@ -1,0 +1,2 @@
+inference:
+  checkpoint: /data/tailing/weights/train/512/H/TSViT_best.ckp

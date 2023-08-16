@@ -1,0 +1,13 @@
+dataset:
+  train:
+    path: /workspace/dataset/server_data24_rgb_fps3/train
+    batch_size: 8
+    shuffle: True
+    #drop_last: True
+    preprocess:
+      - type: horizontal
+
+
+  test:
+    path : /workspace/dataset/server_data24_rgb_fps3/test
+    batch_size: 16

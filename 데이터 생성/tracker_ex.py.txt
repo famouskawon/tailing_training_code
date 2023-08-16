@@ -1,0 +1,175 @@
+import os
+import cv2
+import torch
+import numpy as np
+import json
+import argparse
+from detector.tracker_tl.byte_tracker.BYTETracker import BYTETracker
+
+
+def is_not_boundary(xyah):
+    x = xyah[0]
+    y = xyah[1]
+    if 5 < x < 1915 and 5 < y < 1040:
+        return True
+    else:
+        return False
+
+def save_tracking_result(file_idx, normal_or_tailing, raw_input, output_grid_path,output_rgb_path, grid_size, train_or_test):
+    tracker_params = {
+        'tracker_name' : 'byte_tracker',
+        'score_threshold' : 0.1,
+        'track_threshold' : 0.5,
+        'track_buffer' : 30,
+        'match_threshold' : 0.8,
+        'min_box_area' : 100,
+        'frame_rate' : 10
+    }
+
+    frame_path = f"{raw_input}/{normal_or_tailing}_{file_idx}/frame"
+    json_path = f"{raw_input}/{normal_or_tailing}_{file_idx}/json"
+
+    print("----------------- Tracking Start ----------------")    
+    tracker = BYTETracker(params = tracker_params)
+    tracked_stracks_history = []
+    cnt = 0
+
+    global human_stracks
+    json_file_len = len(os.listdir(json_path))
+    frame_file_pl = []
+    if json_file_len >= 16:
+        #객체 검출기 돌리고 나게 되면 영상 프레임 결과값 저장된 폴더에서 객체 검출 결과값 불러옴
+        for fr, js in zip(sorted(os.listdir(frame_path)), sorted(os.listdir(json_path))):
+            json_file_path = os.path.join(json_path, js)
+            frame_file_path = os.path.join(frame_path, fr)
+            frame_file_pl.append(frame_file_path)
+            with open(json_file_path, 'r') as f:
+                detection_result = json.load(f)
+
+            cnt += 1
+            #객체 검출 값 기반 tracking 실시
+            tracking_result = tracker.update(detection_result)
+            human_stracks = tracking_result[:-1]
+
+
+        max_frame_coord = []
+        
+        for i in range(len(human_stracks)):
+            stracks = human_stracks[i].updated_tlwh
+            max_frame_coord.append(stracks[-1]['frame_count'])
+
+        max_frame = max(max_frame_coord)
+        #frame : rgb , mask : one-hot grid map
+        mask_flist = [np.zeros((1080,1920), dtype = np.uint8) for _ in range(max_frame)]
+        frame_flist = [np.zeros((1080,1920, 3), dtype = np.uint8) for _ in range(max_frame)]
+
+        fr_img = cv2.imread(frame_file_path)
+        json_file_len = len(os.listdir(json_path))
+        frame_file_len = len(os.listdir(frame_path))
+        
+        mask_list = []
+        w_factor = 1920 / grid_size
+        h_factor = 1080 / grid_size
+        for i in range(len(human_stracks)):
+            stracks = human_stracks[i].updated_tlwh
+            for strack in stracks:
+
+                frame_count = strack['frame_count']-1
+                lx = int(strack['center_point'][0])
+                ly = int(strack['center_point'][1])
+                w = int(strack['center_point'][2])
+                h = int(strack['center_point'][3])
+                #print(lx, ly, w, h, strack)
+                
+                
+                fr_img = cv2.imread(frame_file_pl[frame_count])
+                mask_flist[frame_count][ly:ly+h, lx:lx+w] = 255.0
+                frame_flist[frame_count][ly:ly+h, lx:lx+w] = fr_img[ly:ly+h, lx:lx+w,]
+          
+        
+        mask_len = len(mask_flist)
+        rgb_len = len(frame_flist)
+
+        #영상 클립 당 16개 누적 프레임 사용함
+        if train_or_test == "train":
+            os.makedirs(f'{output_grid_path}/train/{normal_or_tailing}/', exist_ok=True)
+            os.makedirs(f'{output_rgb_path}/train/{normal_or_tailing}/', exist_ok=True)
+            npy_out_filename = f'{output_grid_path}/train/{normal_or_tailing}/{normal_or_tailing}_{file_idx}.npy'
+            rgb_out_filename = f'{output_rgb_path}/train/{normal_or_tailing}/{normal_or_tailing}_{file_idx}.npy'
+            
+            grid = torch.zeros(mask_len + 4, grid_size, grid_size)
+            rgb_grid = torch.zeros(rgb_len + 4, grid_size, grid_size, 3)
+            for idx, mask in enumerate(mask_flist):
+                #if np.sum(mask) > 0.0:
+                mask = cv2.resize(mask, dsize=(grid_size, grid_size), interpolation=cv2.INTER_CUBIC)
+                grid[idx + 1, ] = torch.tensor(mask)
+                    
+            for idx, frm in enumerate(frame_flist):
+                
+                fr = cv2.resize(frm, dsize=(grid_size, grid_size), interpolation=cv2.INTER_CUBIC)
+                rgb_grid[idx + 1, ] = torch.tensor(fr)
+                    
+            grid_np = grid.numpy()
+            rgb_np = rgb_grid.numpy()
+            
+            if grid_np.shape[0] >= 16:
+                np.save(npy_out_filename, grid_np)
+            if rgb_np.shape[0] >= 16:
+                np.save(rgb_out_filename, rgb_np)
+
+
+        elif train_or_test == "test":
+            os.makedirs(f'{output_grid_path}/test/{normal_or_tailing}/', exist_ok=True)
+            os.makedirs(f'{output_rgb_path}/test/{normal_or_tailing}/', exist_ok=True)
+            
+            for start_idx in range(mask_len-16+1):
+                file_id = str(start_idx).zfill(5)
+                npy_out_filename = f'{output_grid_path}/test/{normal_or_tailing}/{normal_or_tailing}_{file_idx}_{file_id}.npy'
+                rgb_out_filename = f'{output_rgb_path}/test/{normal_or_tailing}/{normal_or_tailing}_{file_idx}_{file_id}.npy'
+                
+                grid = torch.zeros(16, grid_size, grid_size)
+                rgb_grid = torch.zeros(16, grid_size, grid_size, 3)
+                for idx in range(16):                
+                    mask = mask_flist[start_idx+idx]
+                    mask = cv2.resize(mask, dsize=(grid_size, grid_size), interpolation=cv2.INTER_CUBIC)
+                    grid[idx, ] = torch.tensor(mask)
+
+                for idx in range(16):                
+                    fr = frame_flist[start_idx+idx]
+                    fr = cv2.resize(fr, dsize=(grid_size, grid_size), interpolation=cv2.INTER_CUBIC)
+                    rgb_grid[idx, ] = torch.tensor(fr)
+                
+                grid_np = grid.numpy()
+                rgb_np = rgb_grid.numpy()
+                
+                if grid_np.shape[0] >= 16:
+                    np.save(npy_out_filename, grid_np)
+                if rgb_np.shape[0] >= 16:
+                    np.save(rgb_out_filename, rgb_np)
+
+
+        print(f"----------------- Grid Map Processing {file_idx}----------------") 
+        #os.makedirs(f'{output_path}/{train_or_test}/{normal_or_tailing}/{normal_or_tailing}_{file_idx}/images/', exist_ok=True)
+        #os.makedirs(f'{output_path}/{train_or_test}/{normal_or_tailing}/{normal_or_tailing}_{file_idx}/grid_npy/', exist_ok=True)
+        #for mask,js_name in zip(mask_list, sorted(os.listdir(json_path))):
+        for idx, mask in enumerate(mask_list):
+            file_name = str(idx).zfill(5)#js_name.split('.')[0]
+            cv2.imwrite(f'{output_path}/{train_or_test}/{normal_or_tailing}/{normal_or_tailing}_{file_idx}/images/{file_name}.jpg', mask)
+    else:
+        print("----------------- Pass Tracking ----------------")    
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument("--file_idx", type=str, default="00006", help="00001 to 00123")
+    parser.add_argument("--normal_or_tailing", type=str, default="tailing", help="normal_or_tailing")
+    parser.add_argument("--train_or_test", type=str, default="train", help="train_or_test")
+    parser.add_argument("--grid_size", type=int, default="224", help="grid map size")
+    parser.add_argument("--raw_data", type=str, default="/workspace/result_test", help="raw data path")
+    parser.add_argument("--output_grid_data", type=str, default="/workspace/server_data5_grid_fps2", help="output data path")
+    parser.add_argument("--output_rgb_data", type=str, default="/workspace/server_data5_rgb_fps2", help="output data path")
+    option = parser.parse_known_args()[0]
+
+    save_tracking_result(file_idx = option.file_idx, normal_or_tailing = option.normal_or_tailing, raw_input = option.raw_data ,
+                         output_grid_path = option.output_grid_data,output_rgb_path = option.output_rgb_data , grid_size = option.grid_size, 
+                         train_or_test = option.train_or_test)

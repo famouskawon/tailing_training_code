@@ -1,0 +1,4 @@
+- 영상 1개당 객체 검출 및 이벤트 검출 돌리는 것 : extract_result.py
+- extract_result 실행 된 뒤 tracker_ex 통해서 추적한 값 기반 데이터 셋 생성 되고 저장 됨
+- 자동화는 extrack_grid.py 로 하게 해놨음
+- extrack_grid 실행하게 되면 학습 위한 데이터 생성 될 것임

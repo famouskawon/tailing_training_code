@@ -1,0 +1,13 @@
+dataset:
+  train:
+    path: /data/dataset/project/grid_256/train
+    batch_size: 32
+    shuffle: True
+    drop_last: True
+    preprocess:
+      - type: horizontal
+
+
+  test:
+    path : /data/dataset/project/grid_256/test
+    batch_size: 32
